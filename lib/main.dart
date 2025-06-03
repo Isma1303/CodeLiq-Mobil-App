@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/user_database_service.dart';
+import 'exceptions/database_exception.dart';
 import 'theme/app_theme.dart';
 import 'models/user.dart';
 import 'models/service.dart';
@@ -13,13 +16,114 @@ import 'screens/services/service_form_screen.dart';
 import 'screens/subscriptions/subscription_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  runApp(const MyApp());
+// Global instance of the database service
+final UserDatabaseService userDbService = UserDatabaseService();
+
+void main() async {
+  await initializeApp();
+}
+
+Future<void> initializeApp() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await dotenv.load();
+    
+    // Lock orientation
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    // Test API connection
+    print('\n=== Testing API Connection ===');
+    await userDbService.connect();
+    print('Successfully connected to API server!');
+    print('=== End API Connection Test ===\n');
+
+    // If connection is successful, run the app
+    runApp(const MyApp());
+  } on DatabaseException catch (e) {
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_off, color: Colors.red, size: 80),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'No se pudo conectar al servidor',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Por favor, verifique su conexión y la configuración del servidor.\n\nDetalles: ${e.message}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: () => initializeApp(), // Retry connection
+                    child: const Text('Reintentar Conexión'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => SystemNavigator.pop(),
+                    child: const Text('Cerrar Aplicación'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    print('❌ ERROR INESPERADO durante la inicialización: $e');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 80),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Error Inesperado',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Ocurrió un error inesperado al iniciar la aplicación:\n\n$e',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: () => initializeApp(), // Retry initialization
+                    child: const Text('Reintentar'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => SystemNavigator.pop(),
+                    child: const Text('Cerrar Aplicación'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

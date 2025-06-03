@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../components/company_icon.dart';
-import '../../services/user_database_service.dart';
+import '../../main.dart';
+// import '../../services/user_database_service.dart'; // No necesitas importar esto si usas la instancia global
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,7 +14,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final UserDatabaseService _userDbService = UserDatabaseService();
+  // Elimina esta línea:
+  // final UserDatabaseService _userDbService = UserDatabaseService();
   bool _isLoading = false;
 
   @override
@@ -84,7 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      final user = await _userDbService.authenticate(email, password);
+
+      // Usa la instancia global:
+      final user = await userDbService.authenticate(email, password);
+
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (user != null) {
